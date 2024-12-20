@@ -1,0 +1,58 @@
+using System;
+
+class AutomataFinito
+{
+    // Enumeración para representar los estados del autómata
+    enum Estado { q0, q1, q2, q3 }
+
+    static void Main(string[] args)
+    {
+        Console.WriteLine("Ingrese la cadena de entrada (usando 'm', 'h', 'a'):");
+        string entrada = Console.ReadLine();
+
+        if (EsCadenaAceptada(entrada))
+            Console.WriteLine("La cadena es aceptada por el autómata.");
+        else
+            Console.WriteLine("La cadena no es aceptada por el autómata.");
+    }
+
+    static bool EsCadenaAceptada(string cadena)
+    {
+        Estado estadoActual = Estado.q0;
+
+        // Recorrer la cadena de entrada
+        foreach (char simbolo in cadena)
+        {
+            switch (estadoActual)
+            {
+                case Estado.q0:
+                    if (simbolo == 'm') estadoActual = Estado.q1;
+                    else return false; // No hay transición válida
+                    break;
+
+                case Estado.q1:
+                    if (simbolo == 'h') estadoActual = Estado.q3;
+                    else if (simbolo == 'a') estadoActual = Estado.q2;
+                    else return false;
+                    break;
+
+                case Estado.q2:
+                    if (simbolo == 'm') estadoActual = Estado.q1;
+                    else if (simbolo == 'h') estadoActual = Estado.q2;
+                    else return false;
+                    break;
+
+                case Estado.q3:
+                    if (simbolo == 'a') estadoActual = Estado.q3;
+                    else return false;
+                    break;
+
+                default:
+                    return false; // Estado inválido
+            }
+        }
+
+        // Verificar si el estado actual es de aceptación (q2 o q3)
+        return estadoActual == Estado.q2 || estadoActual == Estado.q3;
+    }
+}
