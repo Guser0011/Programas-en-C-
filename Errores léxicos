@@ -1,0 +1,38 @@
+Ejemplo 1: Uso de caracteres no permitidos
+
+using System;
+
+class Program
+{
+    static void Main()
+    {
+        int número@ = 5; // ERROR: El símbolo '@' no es válido en un identificador
+        Console.WriteLine(número@);
+    }
+}
+
+Ejemplo 2: Token desconocido
+
+using System;
+
+class Program
+{
+    static void Main()
+    {
+        int 5numero = 10; // ERROR: El nombre de la variable no puede empezar con un número
+        Console.WriteLine(5numero);
+    }
+}
+
+Ejemplo 3: Caracter inválido en la cadena
+
+using System;
+
+class Program
+{
+    static void Main()
+    {
+        string mensaje = "Hola mundo¡"; // ERROR: '¡' no es un caracter válido en la cadena sin escape
+        Console.WriteLine(mensaje);
+    }
+}
