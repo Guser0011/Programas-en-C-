@@ -1,0 +1,47 @@
+Ejemplo 1: División por cero en tiempo de ejecución
+
+using System;
+
+class Program
+{
+    static void Main()
+    {
+        int numerador = 10;
+        int denominador = 0;
+        
+        // Error semántico: División por cero
+        int resultado = numerador / denominador;
+
+        Console.WriteLine("El resultado es: " + resultado);
+    }
+}
+
+Ejemplo 2: Acceder a un índice fuera de los límites de un arreglo
+
+using System;
+
+class Program
+{
+    static void Main()
+    {
+        int[] numeros = { 1, 2, 3, 4, 5 };
+
+        // Error semántico: Índice fuera de los límites del arreglo
+        Console.WriteLine(numeros[5]);
+    }
+}
+
+Ejemplo 3: Uso incorrecto de un valor nulo (NullReferenceException)
+
+using System;
+
+class Program
+{
+    static void Main()
+    {
+        string mensaje = null;
+
+        // Error semántico: Se intenta acceder a un método en una referencia nula
+        Console.WriteLine(mensaje.Length);
+    }
+}
