@@ -1,0 +1,59 @@
+using System;
+using System.Collections.Generic;
+
+class GrammarParser
+{
+    static void Main(string[] args)
+    {
+        Console.WriteLine("Ingrese la ruta del archivo (ejemplo: home/user/Documents/compi.txt): ");
+        string input = Console.ReadLine();
+
+        if (IsValidFile(input))
+            Console.WriteLine("La ruta del archivo es válida.");
+        else
+            Console.WriteLine("La ruta del archivo NO es válida.");
+    }
+
+    // Método principal para validar la cadena
+    static bool IsValidFile(string input)
+    {
+        if (string.IsNullOrWhiteSpace(input)) return false;
+
+        // Separar la cadena en path y extension usando '.'
+        string[] parts = input.Split('.');
+        if (parts.Length != 2) return false; // Debe contener exactamente un punto para el nombre y extensión
+
+        string path = parts[0];
+        string extension = parts[1];
+
+        // Validar el path y la extensión
+        return IsValidPath(path) && IsValidExtension(extension);
+    }
+
+    // Validar el path: dir1/dir2/dir3
+    static bool IsValidPath(string path)
+    {
+        string[] directories = path.Split('/');
+        if (directories.Length == 0) return false;
+
+        foreach (string dir in directories)
+        {
+            if (!IsValidDir(dir)) return false;
+        }
+        return true;
+    }
+
+    // Validar los directorios permitidos
+    static bool IsValidDir(string dir)
+    {
+        HashSet<string> validDirs = new HashSet<string> { "home", "user", "Documents", "compi" };
+        return validDirs.Contains(dir);
+    }
+
+    // Validar la extensión permitida
+    static bool IsValidExtension(string extension)
+    {
+        HashSet<string> validExtensions = new HashSet<string> { "txt", "docx", "pdf" };
+        return validExtensions.Contains(extension);
+    }
+}
