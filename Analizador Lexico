@@ -1,0 +1,97 @@
+using System;
+using System.Collections.Generic;
+using System.Text.RegularExpressions;
+
+class Token
+{
+    public string Tipo { get; set; }
+    public string Lexema { get; set; }
+
+    public Token(string tipo, string lexema)
+    {
+        Tipo = tipo;
+        Lexema = lexema;
+    }
+
+    public override string ToString()
+    {
+        return $"[{Tipo}] => \"{Lexema}\"";
+    }
+}
+
+class AnalizadorLexico
+{
+    private static readonly Dictionary<string, string> patrones = new()
+    {
+        { "AND", @"^&&" },
+        { "OR", @"^\|\|" },
+        { "NOT", @"^!" },
+        { "DIFERENTE", @"^!=" },
+        { "IGUAL", @"^==" },
+        { "MAYOR_IGUAL", @"^>=" },
+        { "MENOR_IGUAL", @"^<=" },
+        { "MAYOR", @"^>" },
+        { "MENOR", @"^<" },
+        { "MOD", @"^%" },
+        { "PAREN_IZQ", @"^\(" },
+        { "PAREN_DER", @"^\)" },
+        { "NUM", @"^[0-9]+" },
+        { "IDENT", @"^[a-zA-Z_][a-zA-Z0-9_]*" },
+        { "ESPACIO", @"^[ \t\n\r]+" }
+    };
+
+    public static List<Token> Analizar(string codigo)
+    {
+        var tokens = new List<Token>();
+        int pos = 0;
+
+        while (pos < codigo.Length)
+        {
+            string subcadena = codigo[pos..];
+            bool coincidencia = false;
+
+            foreach (var patron in patrones)
+            {
+                var regex = new Regex(patron.Value);
+                var match = regex.Match(subcadena);
+
+                if (match.Success)
+                {
+                    if (patron.Key != "ESPACIO") // No agregar espacios a la lista
+                    {
+                        tokens.Add(new Token(patron.Key, match.Value));
+                    }
+
+                    pos += match.Length;
+                    coincidencia = true;
+                    break;
+                }
+            }
+
+            if (!coincidencia)
+            {
+                Console.WriteLine($"Error léxico en posición {pos}: {codigo[pos]}");
+                break;
+            }
+        }
+
+        return tokens;
+    }
+}
+
+class Program
+{
+    static void Main()
+    {
+        Console.WriteLine("Ingrese una expresión lógica tipo C++:");
+        string entrada = Console.ReadLine();
+
+        var tokens = AnalizadorLexico.Analizar(entrada);
+
+        Console.WriteLine("\nTokens reconocidos:");
+        foreach (var token in tokens)
+        {
+            Console.WriteLine(token);
+        }
+    }
+}
