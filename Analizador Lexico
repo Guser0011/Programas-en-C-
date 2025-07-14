@@ -1,0 +1,253 @@
+using System;
+using System.Collections.Generic;
+using System.Text.RegularExpressions;
+
+namespace AnalizadorSintactico
+{
+    class Program
+    {
+        static void Main(string[] args)
+        {
+            Console.WriteLine("Ingrese una expresión lógica (ej: !(x % 2 == 0 || y >= 5)):");
+            string input = Console.ReadLine();
+
+            try
+            {
+                var parser = new Parser(new Tokenizer(input));
+                var ast = parser.ParseExpression();
+
+                Console.WriteLine("✔ Expresión válida sintácticamente.");
+                Console.WriteLine("🌳 Árbol de Sintaxis Abstracta:");
+                ast.Print();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"❌ Error: {ex.Message}");
+            }
+        }
+    }
+
+    public enum TokenType
+    {
+        Identifier,
+        Number,
+        And,
+        Or,
+        Not,
+        Equal,
+        NotEqual,
+        Less,
+        LessEqual,
+        Greater,
+        GreaterEqual,
+        Modulo,
+        OpenParen,
+        CloseParen,
+        Assign,
+        End
+    }
+
+    public class Token
+    {
+        public TokenType Type;
+        public string Value;
+        public Token(TokenType type, string value)
+        {
+            Type = type;
+            Value = value;
+        }
+        public override string ToString() => $"{Type} ({Value})";
+    }
+
+    public class Tokenizer
+    {
+        private static readonly Regex tokenRegex = new Regex(@"\s*(=>|==|!=|>=|<=|&&|\|\||[()!%<>=]|[a-zA-Z_]\w*|\d+)");
+        private List<Token> tokens;
+        private int position = 0;
+
+        public Tokenizer(string input)
+        {
+            tokens = new List<Token>();
+            foreach (Match match in tokenRegex.Matches(input))
+            {
+                string value = match.Value.Trim();
+                if (string.IsNullOrEmpty(value)) continue;
+
+                Token token = value switch
+                {
+                    "&&" => new Token(TokenType.And, value),
+                    "||" => new Token(TokenType.Or, value),
+                    "!" => new Token(TokenType.Not, value),
+                    "==" => new Token(TokenType.Equal, value),
+                    "!=" => new Token(TokenType.NotEqual, value),
+                    "<" => new Token(TokenType.Less, value),
+                    "<=" => new Token(TokenType.LessEqual, value),
+                    ">" => new Token(TokenType.Greater, value),
+                    ">=" => new Token(TokenType.GreaterEqual, value),
+                    "%" => new Token(TokenType.Modulo, value),
+                    "(" => new Token(TokenType.OpenParen, value),
+                    ")" => new Token(TokenType.CloseParen, value),
+                    _ when Regex.IsMatch(value, @"^\d+$") => new Token(TokenType.Number, value),
+                    _ when Regex.IsMatch(value, @"^[a-zA-Z_]\w*$") => new Token(TokenType.Identifier, value),
+                    _ => throw new Exception($"Token desconocido: {value}")
+                };
+
+                tokens.Add(token);
+            }
+            tokens.Add(new Token(TokenType.End, ""));
+        }
+
+        public Token Peek() => tokens[position];
+        public Token Next() => tokens[position++];
+        public bool Match(TokenType type)
+        {
+            if (Peek().Type == type)
+            {
+                Next();
+                return true;
+            }
+            return false;
+        }
+
+        public Token Expect(TokenType type)
+        {
+            if (Peek().Type == type) return Next();
+            throw new Exception($"Se esperaba '{type}', pero se encontró '{Peek().Type}'");
+        }
+    }
+
+    public abstract class AstNode
+    {
+        public abstract void Print(string indent = "", bool isLast = true);
+    }
+
+    public class BinaryNode : AstNode
+    {
+        public string Operator;
+        public AstNode Left, Right;
+
+        public BinaryNode(string op, AstNode left, AstNode right)
+        {
+            Operator = op; Left = left; Right = right;
+        }
+
+        public override void Print(string indent = "", bool isLast = true)
+        {
+            Console.WriteLine($"{indent}├─ {Operator}");
+            Left.Print(indent + (isLast ? "│  " : "   "), false);
+            Right.Print(indent + (isLast ? "│  " : "   "), true);
+        }
+    }
+
+    public class UnaryNode : AstNode
+    {
+        public string Operator;
+        public AstNode Operand;
+
+        public UnaryNode(string op, AstNode operand)
+        {
+            Operator = op; Operand = operand;
+        }
+
+        public override void Print(string indent = "", bool isLast = true)
+        {
+            Console.WriteLine($"{indent}├─ {Operator}");
+            Operand.Print(indent + (isLast ? "│  " : "   "), true);
+        }
+    }
+
+    public class ValueNode : AstNode
+    {
+        public string Value;
+        public ValueNode(string value) => Value = value;
+
+        public override void Print(string indent = "", bool isLast = true)
+        {
+            Console.WriteLine($"{indent}└─ {Value}");
+        }
+    }
+
+    public class Parser
+    {
+        private Tokenizer tokenizer;
+
+        public Parser(Tokenizer tokenizer)
+        {
+            this.tokenizer = tokenizer;
+        }
+
+        public AstNode ParseExpression() => ParseOr();
+
+        private AstNode ParseOr()
+        {
+            var left = ParseAnd();
+            while (tokenizer.Match(TokenType.Or))
+                left = new BinaryNode("OR", left, ParseAnd());
+            return left;
+        }
+
+        private AstNode ParseAnd()
+        {
+            var left = ParseNot();
+            while (tokenizer.Match(TokenType.And))
+                left = new BinaryNode("AND", left, ParseNot());
+            return left;
+        }
+
+        private AstNode ParseNot()
+        {
+            if (tokenizer.Match(TokenType.Not))
+                return new UnaryNode("NOT", ParsePrimary());
+            return ParsePrimary();
+        }
+
+        private AstNode ParsePrimary()
+        {
+            if (tokenizer.Match(TokenType.OpenParen))
+            {
+                var expr = ParseExpression();
+                tokenizer.Expect(TokenType.CloseParen);
+                return expr;
+            }
+
+            var left = ParseTerm();
+            if (IsRelational(tokenizer.Peek().Type))
+            {
+                string op = tokenizer.Next().Value;
+                var right = ParseTerm();
+                return new BinaryNode(op, left, right);
+            }
+
+            return left;
+        }
+
+        private AstNode ParseTerm()
+        {
+            var token = tokenizer.Peek();
+
+            if (token.Type == TokenType.Identifier)
+            {
+                tokenizer.Next();
+                if (tokenizer.Match(TokenType.Modulo))
+                {
+                    var right = tokenizer.Expect(TokenType.Number);
+                    return new BinaryNode("%", new ValueNode(token.Value), new ValueNode(right.Value));
+                }
+                return new ValueNode(token.Value);
+            }
+
+            if (token.Type == TokenType.Number)
+            {
+                tokenizer.Next();
+                return new ValueNode(token.Value);
+            }
+
+            throw new Exception($"Token inesperado: {token.Value}");
+        }
+
+        private bool IsRelational(TokenType type) =>
+            type == TokenType.Equal || type == TokenType.NotEqual ||
+            type == TokenType.Less || type == TokenType.LessEqual ||
+            type == TokenType.Greater || type == TokenType.GreaterEqual;
+    }
+}
