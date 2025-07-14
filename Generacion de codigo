@@ -1,0 +1,82 @@
+using System;
+using System.Collections.Generic;
+using System.Text.RegularExpressions;
+
+class Program
+{
+    static Dictionary<string, string> operadores = new Dictionary<string, string>
+    {
+        { "&&", "y" },
+        { "||", "o" },
+        { "!", "no es cierto que" },
+        { "==", "es igual a" },
+        { "!=", "es distinto de" },
+        { ">=", "es mayor o igual que" },
+        { "<=", "es menor o igual que" },
+        { ">", "es mayor que" },
+        { "<", "es menor que" },
+        { "%", "módulo" }
+    };
+
+    static void Main()
+    {
+        Console.WriteLine("Ingrese una expresión lógica estilo C++:");
+        string expresion = Console.ReadLine();
+
+        string traducida = TraducirExpresion(expresion);
+        Console.WriteLine("\nTraducción al español:");
+        Console.WriteLine(traducida);
+    }
+
+    static string TraducirExpresion(string expresion)
+    {
+        string resultado = expresion;
+
+        // Añadir espacios alrededor de operadores para facilitar el split
+        foreach (var op in operadores.Keys)
+        {
+            resultado = resultado.Replace(op, $" {op} ");
+        }
+
+        resultado = resultado.Replace("(", " ( ").Replace(")", " ) ");
+
+        string[] tokens = Regex.Split(resultado, @"\s+");
+        List<string> salida = new List<string>();
+
+        for (int i = 0; i < tokens.Length; i++)
+        {
+            string token = tokens[i];
+
+            if (operadores.ContainsKey(token))
+            {
+                // Manejo especial para módulo
+                if (token == "%")
+                {
+                    salida.Add("el residuo de");
+                    salida.Add(tokens[++i]); // número o variable siguiente
+                    salida.Add("entre");
+                    salida.Add(tokens[++i]); // número o variable siguiente
+                }
+                else if (token == "!")
+                {
+                    salida.Add(operadores[token]);
+                }
+                else
+                {
+                    salida.Add(operadores[token]);
+                }
+            }
+            else if (token == "(" || token == ")")
+            {
+                salida.Add(token);
+            }
+            else
+            {
+                salida.Add(token);
+            }
+        }
+
+        // Recomponer con espacios
+        return string.Join(" ", salida);
+    }
+}
